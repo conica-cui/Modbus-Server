@@ -6,6 +6,7 @@ import ssl
 
 from modbus_exception import modbus_exception
 from modbus_functions import func_dict
+from modbus_functions import have_modbus_exception
 
 MODBUS_TCP_MAX_BUF_LEN = 253 + 7
 
@@ -44,24 +45,21 @@ def check_fcode(fcode):
 
 def check_pdu(fcode, data):
     if not check_fcode(fcode):
+        print("ILLEGAL_FUNCTION. Wrong function code.")
         return modbus_exception.ILLEGAL_FUNCTION
 
     if len(data) < 2:
+        print("ILLEGAL_DATA_ADDRESS. Data is shorter than 2.")
         return modbus_exception.ILLEGAL_DATA_ADDRESS
 
     if 0x0 < fcode and fcode <= 0x6 and len(data) == 4:
         return None
-    elif fcode == 0xF and len(data) > 6:
+    elif fcode == 0xF and len(data) >= 6:
         return None
     elif fcode == 0x10 and len(data) > 7:
         return None
 
     return modbus_exception.ILLEGAL_DATA_VALUE
-
-def have_modbus_exception(req, fcode, error):
-    res_fcode = fcode + 0x80
-    res_data = error.to_bytes(length=1, byteorder='big')
-    return res_fcode, res_data
 
 class modbus_client:
     def __init__(self, reader, writer, max_elapsed_time=2):
@@ -111,11 +109,16 @@ class modbus_server:
         return modbus_request(buf)
 
     def _print_client(self, client, req):
-        client_info = "Client {} ".format(client.writer.get_extra_info('peername'))
-        client_info += "transaction id: 0x{:x}, protocol id: 0x{:x}," \
-                       "len_field: {}, unit: 0x{:x}, ".format(
-                        req.tran_id, req.proto_id, req.len_field, req.unit)
-        client_info += "function code: 0x{:x}, data length: {} bytes".format(
+        # client_info = "Client {} ".format(client.writer.get_extra_info('peername'))
+        print("")
+        print("")
+        print("----------------------------------------------")
+        print("New request:")
+        client_info = ""
+        client_info += "Transaction id: 0x{:x}, " \
+                       "Len_field: {}, ".format(
+                        req.tran_id, req.len_field)
+        client_info += "Function code: 0x{:x}, Data length: {} bytes".format(
                         req.fcode, len(req.data))
         print(client_info)
 
@@ -139,10 +142,12 @@ class modbus_server:
         self._print_client(client, req)
 
         if not self._check_header(req):
+            print("Check header error!")
             return -1
 
         err = check_pdu(req.fcode, req.data)
         if err is not None:
+            print("Check pdu error:", err)
             res_fcode, res_data = have_modbus_exception(req.fcode, err)
         else:
             res_fcode, res_data = func_dict[req.fcode](req.fcode, req.data)
@@ -226,6 +231,7 @@ class modbus_tls_server(modbus_server):
         client_info += "function code: 0x{:x}, data length: {} bytes".format(
                         req.fcode, len(req.data))
         print(client_info)
+        print(req.data)
 
     def _have_modbus_response(self, req, fcode, data):
         return modbus_tls_response(req, fcode, data)
