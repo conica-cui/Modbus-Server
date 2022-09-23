@@ -142,7 +142,6 @@ def write_multiple_coils(fcode, data):
 def write_multiple_registers(fcode, data):
     print("write_multiple_registers")
     addr, cnt, byte_cnt, vals = parse_multi_regs(data)
-    print(addr, cnt, byte_cnt, vals)
     if cnt < 0 or cnt > 0x7B or \
        cnt * 2 != byte_cnt or \
        cnt != len(vals):

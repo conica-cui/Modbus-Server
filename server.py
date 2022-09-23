@@ -231,7 +231,6 @@ class modbus_tls_server(modbus_server):
         client_info += "function code: 0x{:x}, data length: {} bytes".format(
                         req.fcode, len(req.data))
         print(client_info)
-        print(req.data)
 
     def _have_modbus_response(self, req, fcode, data):
         return modbus_tls_response(req, fcode, data)
